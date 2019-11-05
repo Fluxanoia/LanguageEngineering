@@ -1,8 +1,9 @@
 import AbstractMachine
 import AExp
 import BExp
-import Natural
+import Denotational
 import Numeral
+import Operational
 import State
 import Test
 import Truth

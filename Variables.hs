@@ -1,3 +1,3 @@
 module Variables where
 
-type Var = String
+    type Var = String

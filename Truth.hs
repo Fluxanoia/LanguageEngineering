@@ -1,3 +1,3 @@
 module Truth where
 
-type Truth = Bool
+    type Truth = Bool
