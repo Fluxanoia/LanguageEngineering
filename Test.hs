@@ -3,6 +3,7 @@ module Test where
     import AExp
     import BExp
     import State
+    import Statements
     import Operational
     
     -- State representing:
@@ -14,10 +15,13 @@ module Test where
     s "x" = 1
     s "y" = 2
     s "z" = 3
-    s _   = undefined
+    s _   = 0
     
     s' :: State
     s' = subst_set_state s [17, 5] ["x", "y"]
+
+    s'' :: State 
+    s'' = subst_set_state s [13, 5, 0] ["x", "y", "z"]
     
     -- Aexp representing (x + y) - (z - 1)
     a :: Aexp
@@ -36,14 +40,14 @@ module Test where
     --
     -- z is the number of times y goes into x
     -- x is the remainder
-    p :: OS_Stm
-    p = OS_Comp (OS_Ass "z" (N 0)) 
-            (OS_While (Leq (V "y") (V "x")) 
-                (OS_Comp 
-                    (OS_Ass "z" 
+    p :: Stm
+    p = Comp (Ass "z" (N 0)) 
+            (While (Leq (V "y") (V "x")) 
+                (Comp 
+                    (Ass "z" 
                         (Add (V "z") (N 1))
                     )
-                    (OS_Ass "x"
+                    (Ass "x"
                         (Sub (V "x") (V "y"))
                     )
                 )
