@@ -1,14 +1,13 @@
 module Wk14 where
 
-    -- Variables are tuples, the string is used to identify 
-    -- and the int holds the value.
+        ----------------
+        -- Data Types --
+        ----------------
+
     type Variable = (String, Int)
-    -- Bindings are used for the Let expression
     type Binding = (String, Expr)
-    -- The environment is an array of variables.
     type Env = [Variable]
 
-    -- The primitive operators.
     data Primitive = Plus
                    | Minus
                    | Prod
@@ -17,7 +16,6 @@ module Wk14 where
                    | Eq
                    deriving(Show, Eq)
 
-    -- An expression is of one of these forms.
     data Expr = Integer Int
               | Var String
               | Prim Primitive Expr Expr
@@ -25,8 +23,10 @@ module Wk14 where
               | Let [Binding] Expr
               deriving(Eq)
 
-    -- Converts and expression under an environment to its 
-    -- int representation.
+        -----------------
+        -- Evalutation --
+        -----------------
+
     eval :: Expr -> Env -> Int
     eval (Integer i) e = i
     eval (Var v) e     = inspect e v
@@ -42,14 +42,17 @@ module Wk14 where
         | (eval e1 e) /= 0 = eval e2 e
         | otherwise        = eval e3 e
     -- Simultaeneous Letting
-    -- TODO
+    eval (Let bs ex) env = let (env1, _) = foldl f (env, env) bs
+                                in eval ex env1
+                            --    f :: (Env, Env) -> Binding -> (Env, Env)
+                            where f (env', env) (x, xexpr) = let xval = eval xexpr env
+                                                                in (((x, xval):env'), env)
     -- Sequential Letting
     -- eval (Let ((s, bind):bs) ex) env = let env' = ((s, eval bind env):env)
     --                                     in eval (Let bs ex) env'
     -- eval (Let [] ex) env             = eval ex env 
     eval _ _ = error "Unknown Expression for Evaluation"
 
-    -- Evaluates as much as possible without an environment, simplifying it.
     weak_eval :: Expr -> Expr
     weak_eval (Prim Plus e1 e2) = case (weak_eval e1, weak_eval e2) of
         (Integer 0, v2)          -> v2
@@ -71,18 +74,13 @@ module Wk14 where
         Integer 0 -> weak_eval e3
         Integer _ -> weak_eval e2
         otherwise -> If e1 e2 e3
-    -- Letting
-    -- TODO
+    -- Sequential / Simultaeneous Letting
     weak_eval e = e
 
-    -- Looks up the value of a variable in an environment.
-    inspect :: Env -> String -> Int
-    inspect [] x           = error ("Variable " ++ x ++ " does not exist in the Environment")
-    inspect ((y, v) : r) x
-        | x == y    = v
-        | otherwise = inspect r x
+        -----------
+        -- I / O --
+        -----------
 
-    -- Formats an expression as a string.
     format_expr :: Expr -> String
     format_expr (Integer i)          = show i
     format_expr (Var v)              = "Var " ++ v
@@ -91,6 +89,10 @@ module Wk14 where
     format_expr (Let ((s, b):bs) ex) = "(Let " ++ s ++ " = " ++ (format_expr b) ++ " in " ++ (format_expr (Let bs ex)) ++ ")"
     format_expr (Let [] ex)          = format_expr ex
     format_expr _                    = error "Unknown Expression for Formatting"
+
+        --------------------
+        -- Set Operations --
+        --------------------
 
     member :: Eq a => a -> [a] -> Bool
     member x []     = False 
@@ -107,6 +109,44 @@ module Wk14 where
     set_minus (x:xs) ys
         | member x ys = set_minus xs ys 
         | otherwise   = x:(set_minus xs ys)
+
+        -------------------------------------
+        -- Environment / Binding Tampering --
+        -------------------------------------
+
+    inspect :: Env -> String -> Int
+    inspect [] x = error ("Variable " ++ x ++ " does not exist in the Environment")
+    inspect ((y, v) : r) x
+        | x == y    = v
+        | otherwise = inspect r x
+
+    subst :: [Binding] -> String -> Expr
+    subst [] x          = Var x
+    subst ((y, e):bs) x = if (x == y) then e else (subst bs x)
+
+    -- eval_subst :: Expr -> [Binding] -> Expr
+    -- eval_subst (Integer i) e = return (Integer i)
+    -- eval_subst (Var v) e     = return (subst e v)
+    -- eval_subst (Prim op e1 e2) e = Prim op (eval_subst e1 e) (eval_subst e2 e)
+    -- eval (If e1 e2 e3) e = If (eval_subst e1 e) (eval_subst e2 e) (eval_subst e3 e)
+    -- -- Simultaeneous Letting
+    -- -- TODO
+    -- -- Sequential Letting
+    -- -- TODO
+    -- eval _ _ = error "Unknown Expression for Substitution"
+
+    remove :: [Binding] -> String -> [Binding]
+    remove [] x = []
+    remove ((y, e):bs) x = if (x == y) then bs 
+        else ((y, e):(remove bs x))
+
+    remove_many :: [Binding] -> [String] -> [Binding]
+    remove_many [] xs     = []
+    remove_many bs (x:xs) = remove_many (remove bs x) xs
+
+        --------------------
+        -- Free Variables --
+        --------------------
 
     freevars :: Expr -> [String]
     freevars (Integer i)             = []
